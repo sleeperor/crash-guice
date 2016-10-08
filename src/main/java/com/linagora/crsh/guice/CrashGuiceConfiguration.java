@@ -34,6 +34,7 @@ package com.linagora.crsh.guice;
 import java.util.Collection;
 import java.util.Map.Entry;
 
+import com.google.inject.Inject;
 import org.crsh.plugin.PropertyDescriptor;
 
 import com.google.common.collect.ArrayListMultimap;
@@ -83,8 +84,8 @@ public class CrashGuiceConfiguration {
 			return new CrashGuiceConfiguration(configuration.build());
 		}
 	}
-	
 
+    @Inject
 	public CrashGuiceConfiguration(ImmutableMap<PropertyDescriptor<Object>, Object> configuration) {
 		this.configuration = configuration;
 	}

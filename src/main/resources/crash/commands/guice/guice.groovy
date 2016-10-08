@@ -1,5 +1,12 @@
+import org.crsh.cli.Argument
+import org.crsh.cli.Command
+import org.crsh.cli.Option
+import org.crsh.cli.Required
+import org.crsh.cli.Usage
+import org.crsh.groovy.GroovyCommand
+
 @Usage("Perform action on Guice singletons")
-class guice extends CRaSHCommand {
+class guice extends GroovyCommand {
   @Usage("display a Guice Singleton property")
   @Command
   Object print(@Usage("The full class name") @Required @Argument String type, @Usage("The property") @Option(names=["p", "property"]) String property) {
@@ -9,11 +16,11 @@ class guice extends CRaSHCommand {
     		return singleton[property];
     	} else {
     		return singleton;
-    	} 
+    	}
     }
     return "No such type : " + type;
   }
-  
+
   @Usage("invoke a method on a Guice Singleton")
   @Command
   Object invoke(@Usage("The full class name") @Required @Argument String type, @Usage("Method name") @Required @Argument String name) {
