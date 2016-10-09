@@ -85,7 +85,6 @@ public class CrashGuiceConfiguration {
 		}
 	}
 
-    @Inject
 	public CrashGuiceConfiguration(ImmutableMap<PropertyDescriptor<Object>, Object> configuration) {
 		this.configuration = configuration;
 	}

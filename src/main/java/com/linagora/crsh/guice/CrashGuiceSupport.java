@@ -1,18 +1,5 @@
 package com.linagora.crsh.guice;
 
-import java.io.IOException;
-import java.net.URISyntaxException;
-import java.util.Map;
-
-import org.crsh.plugin.CRaSHPlugin;
-import org.crsh.plugin.PluginContext;
-import org.crsh.plugin.PluginDiscovery;
-import org.crsh.plugin.PluginLifeCycle;
-import org.crsh.plugin.PropertyDescriptor;
-import org.crsh.plugin.ServiceLoaderDiscovery;
-import org.crsh.vfs.FS;
-import org.crsh.vfs.Path;
-
 import com.google.common.collect.ImmutableMap;
 import com.google.inject.AbstractModule;
 import com.google.inject.Inject;
@@ -21,108 +8,131 @@ import com.google.inject.TypeLiteral;
 import com.google.inject.multibindings.Multibinder;
 import com.google.inject.name.Named;
 import com.google.inject.name.Names;
+import org.crsh.plugin.*;
+import org.crsh.vfs.FS;
+import org.crsh.vfs.Path;
 
-public class CrashGuiceSupport extends AbstractModule {
+import java.io.IOException;
+import java.net.URISyntaxException;
+import java.util.Map;
 
-	private static final String AUTOSTART = "autostart";
+public class CrashGuiceSupport extends AbstractModule
+{
 
-	public static class Bootstrap extends PluginLifeCycle {
+    private static final String AUTOSTART = "autostart";
 
-		private final Injector injector;
-		private ClassLoader loader;
-		private final CrashGuiceConfiguration configuration;
-		private PluginContext context;
+    public static class Bootstrap extends PluginLifeCycle
+    {
 
-		@Inject
-		public Bootstrap(Injector injector, PluginDiscovery pluginDiscovery, CrashGuiceConfiguration configuration,
-				@Named(AUTOSTART)Boolean autostart) throws IOException, URISyntaxException {
-			this.injector = injector;
-			this.loader = getClass().getClassLoader();
-			this.configuration = configuration;
-			FS cmdFS = createCommandFS();
-			FS confFS = createConfFS();
+        private final Injector injector;
+        private ClassLoader loader;
+        private final CrashGuiceConfiguration configuration;
+        private PluginContext context;
 
-			context = new PluginContext(
-					pluginDiscovery,
-					buildGuiceMap(),
-					cmdFS,
-					confFS,
-					loader);
+        @Inject
+        public Bootstrap( Injector injector, PluginDiscovery pluginDiscovery, CrashGuiceConfiguration configuration,
+                          @Named( AUTOSTART ) Boolean autostart ) throws IOException, URISyntaxException
+        {
+            this.injector = injector;
+            this.loader = getClass().getClassLoader();
+            this.configuration = configuration;
+            FS cmdFS = createCommandFS();
+            FS confFS = createConfFS();
 
-			for (Map.Entry<PropertyDescriptor<Object>, Object> property: configuration.toEntries()) {
-				context.setProperty(property.getKey(), property.getValue());
-			}
-			
-			if (autostart) {
-				start();
-			}
-		}
+            context = new PluginContext(
+                    pluginDiscovery,
+                    buildGuiceMap(),
+                    cmdFS,
+                    confFS,
+                    loader );
 
-		public void start() {
-			context.refresh();
-			start(context);
-		}
-		
-		private Map<String, Object> buildGuiceMap() {
-			return ImmutableMap.of(
-					"factory", injector,
-					"properties", configuration,
-					"beans", new GuiceMap(injector)
-					);
-		}
+            for ( Map.Entry<PropertyDescriptor<Object>, Object> property : configuration.toEntries() ) {
+                context.setProperty( property.getKey(), property.getValue() );
+            }
 
-		protected FS createCommandFS() throws IOException, URISyntaxException {
-			FS cmdFS = new FS();
-			cmdFS.mount(loader, Path.get("/crash/commands/"));
-			cmdFS.mount(loader, Path.get("/crash/commands/guice/"));
-			return cmdFS;
-		}
+            if ( autostart ) {
+                start();
+            }
+        }
 
-		protected FS createConfFS() throws IOException, URISyntaxException {
-			FS confFS = new FS();
-			confFS.mount(loader, Path.get("/crash/"));
-			return confFS;
-		}
-		
-		public void destroy() throws Exception {
-			stop();
-		}
-	}
+        public void start()
+        {
+            context.refresh();
+            start( context );
+        }
 
-	private final boolean autostart;
-	
-	public CrashGuiceSupport(boolean autostart) {
-		this.autostart = autostart;
-	}
+        private Map<String, Object> buildGuiceMap()
+        {
+            return ImmutableMap.of(
+                    "factory", injector,
+                    "properties", configuration,
+                    "beans", new GuiceMap( injector )
+            );
+        }
 
-	public CrashGuiceSupport() {
-		this(true);
-	}
+        protected FS createCommandFS() throws IOException, URISyntaxException
+        {
+            FS cmdFS = new FS();
+            cmdFS.mount( loader, Path.get( "/crash/commands/" ) );
+            cmdFS.mount( loader, Path.get( "/crash/commands/guice/" ) );
+            return cmdFS;
+        }
 
-	
-	@Override
-	protected void configure() {
-		install(new CrashPluginsModule());
-		bind(Boolean.class).annotatedWith(Names.named(AUTOSTART)).toInstance(autostart);
-		bind(Bootstrap.class).asEagerSingleton();
-	}
+        protected FS createConfFS() throws IOException, URISyntaxException
+        {
+            FS confFS = new FS();
+            confFS.mount( loader, Path.get( "/crash/" ) );
+            return confFS;
+        }
 
-	private static class CrashPluginsModule extends AbstractModule {
-		
-		@Override
-		protected void configure() {
-			ClassLoader loader = getClass().getClassLoader();
-			PluginDiscovery discovery = new ServiceLoaderDiscovery(loader);
-			
-			Multibinder<CRaSHPlugin<?>> pluginBinder = Multibinder.newSetBinder(binder(), new TypeLiteral<CRaSHPlugin<?>>(){});
-			
-			Iterable<CRaSHPlugin<?>> plugins = discovery.getPlugins();
-			bind(PluginDiscovery.class).to(GuicePluginDiscovery.class);
-			for (CRaSHPlugin<?> plugin: plugins) {
-				pluginBinder.addBinding().toInstance(plugin);
-				bind((Class<CRaSHPlugin>)plugin.getClass()).toInstance(plugin);
-			}
-		}
-	}
-	
+        public void destroy() throws Exception
+        {
+            stop();
+        }
+    }
+
+    private final boolean autostart;
+
+    public CrashGuiceSupport( boolean autostart )
+    {
+        this.autostart = autostart;
+    }
+
+    public CrashGuiceSupport()
+    {
+        this( true );
+    }
+
+
+    @Override
+    protected void configure()
+    {
+        install( new CrashPluginsModule() );
+        bind( Boolean.class ).annotatedWith( Names.named( AUTOSTART ) ).toInstance( autostart );
+        bind( Bootstrap.class ).asEagerSingleton();
+        bind( CrashGuiceConfiguration.class ).toInstance( CrashGuiceConfiguration.builder().build() );
+    }
+
+    private static class CrashPluginsModule extends AbstractModule
+    {
+
+        @Override
+        protected void configure()
+        {
+            ClassLoader loader = getClass().getClassLoader();
+            PluginDiscovery discovery = new ServiceLoaderDiscovery( loader );
+
+            Multibinder<CRaSHPlugin<?>> pluginBinder = Multibinder.newSetBinder( binder(), new TypeLiteral<CRaSHPlugin<?>>()
+            {
+            } );
+
+            Iterable<CRaSHPlugin<?>> plugins = discovery.getPlugins();
+            bind( PluginDiscovery.class ).to( GuicePluginDiscovery.class );
+            for ( CRaSHPlugin<?> plugin : plugins ) {
+                pluginBinder.addBinding().toInstance( plugin );
+                bind( (Class<CRaSHPlugin>) plugin.getClass() ).toInstance( plugin );
+            }
+        }
+    }
+
 }
